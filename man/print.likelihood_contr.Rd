@@ -15,5 +15,15 @@
 The model object, invisibly.
 }
 \description{
-Print method for likelihood_contr
+Prints a summary of the model's observation types, dispatch method
+(column name or function), and assumptions.
+}
+\examples{
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("weibull", "exact", ob_col = "t"),
+  right = contr_name("weibull", "right", ob_col = "t"),
+  assumptions = c("Weibull distribution")
+)
+print(model)
 }

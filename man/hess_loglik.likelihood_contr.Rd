@@ -21,3 +21,12 @@ sums the per-type Hessian matrices. If a contribution does not provide
 an analytical Hessian, numerical differentiation via
 \code{\link[numDeriv:hessian]{numDeriv::hessian()}} is used.
 }
+\examples{
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t")
+)
+df <- data.frame(t = c(0.5, 1.0, 1.5), status = "exact")
+hess_fn <- hess_loglik(model)
+hess_fn(df, par = c(rate = 2))
+}

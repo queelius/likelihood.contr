@@ -1,0 +1,125 @@
+---
+title: "Custom Contributions and Model Comparison"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Custom Contributions and Model Comparison}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## When contr_name() Is Not Enough
+
+`contr_name()` covers standard R distributions, but sometimes you need
+full control: a non-standard parameterization, a truncated distribution,
+or a model with constraints. `contr_fn()` wraps arbitrary R functions
+into a contribution.
+
+## Analytical Derivatives
+
+`contr_name()` contributions rely on `numDeriv` for the score and
+Hessian. For performance-critical applications, you can supply
+analytical derivatives via `contr_fn()`:
+
+```{r analytical}
+library(likelihood.contr)
+library(likelihood.model)
+
+# Exponential exact: log f(t; lambda) = log(lambda) - lambda * t
+exp_exact <- contr_fn(
+  loglik = function(df, par, ...) {
+    sum(dexp(df$t, rate = par[1], log = TRUE))
+  },
+  score = function(df, par, ...) {
+    c(rate = nrow(df) / par[1] - sum(df$t))
+  },
+  hess = function(df, par, ...) {
+    matrix(-nrow(df) / par[1]^2, 1, 1)
+  }
+)
+```
+
+You can mix analytical and numerical contributions in the same model.
+Here the exact contribution uses analytical derivatives while the
+right-censored contribution falls back to `numDeriv`:
+
+```{r mixed-model}
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = exp_exact,
+  right = contr_name("exp", "right", ob_col = "t")
+)
+
+set.seed(42)
+raw <- rexp(200, rate = 2)
+df <- data.frame(
+  t      = pmin(raw, 1.0),
+  status = ifelse(raw <= 1.0, "exact", "right")
+)
+
+result <- fit(model)(df, par = c(rate = 1))
+summary(result)
+```
+
+## Model Comparison with LRT
+
+The likelihood ratio test compares nested models. Is the data better
+explained by a Weibull (2 parameters) than an exponential (1 parameter)?
+
+```{r lrt}
+set.seed(99)
+df_test <- data.frame(
+  t      = rweibull(200, shape = 2, scale = 3),
+  status = "exact"
+)
+
+null_model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t")
+)
+alt_model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("weibull", "exact", ob_col = "t")
+)
+
+null_fit <- suppressWarnings(fit(null_model)(df_test, par = c(rate = 0.5)))
+alt_fit  <- suppressWarnings(fit(alt_model)(df_test, par = c(shape = 1.5, scale = 2)))
+
+lrt(
+  null     = null_model,
+  alt      = alt_model,
+  data     = df_test,
+  null_par = coef(null_fit),
+  alt_par  = coef(alt_fit),
+  dof      = 1
+)
+```
+
+The data was generated from a Weibull with `shape = 2`, so the test
+correctly rejects the exponential null.
+
+## Fisher Information via Monte Carlo
+
+When the model has a data-generating function, `fim()` estimates the
+expected Fisher information by simulation:
+
+```{r fim}
+model_with_rdata <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t"),
+  rdata_fn = function(theta, n, ...) {
+    data.frame(t = rexp(n, rate = theta[1]), status = "exact")
+  }
+)
+
+set.seed(1)
+I <- fim(model_with_rdata)(theta = c(rate = 2), n_obs = 100, n_samples = 500)
+I
+```
+
+For `n = 100` exponential observations with `rate = 2`, the analytical
+Fisher information is `n / rate^2 = 25`. The Monte Carlo estimate should
+be close.

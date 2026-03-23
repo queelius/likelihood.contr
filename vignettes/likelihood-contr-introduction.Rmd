@@ -1,0 +1,132 @@
+---
+title: "Introduction to likelihood.contr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to likelihood.contr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## The Problem
+
+Suppose you observe failure times from a Weibull distribution, but some
+units are right-censored: you only know they survived past a cutoff.
+Exact observations contribute `log f(t)` to the log-likelihood while
+censored ones contribute `log S(t)`. Both share the same shape and scale
+parameters, but the math is different for each row.
+
+`likelihood.contr` handles this by letting you declare each observation
+type's contribution separately, then composing them into a single model.
+
+## Declaring Contributions
+
+`contr_name()` generates a contribution from any R distribution with
+`d<name>` and `p<name>` functions. Four censoring types are supported:
+
+| Type | Log-likelihood contribution |
+|------|---------------------------|
+| `"exact"` | `log f(x; theta)` via `d<name>` |
+| `"right"` | `log S(x; theta)` via `p<name>(lower.tail=FALSE)` |
+| `"left"` | `log F(x; theta)` via `p<name>` |
+| `"interval"` | `log [F(b; theta) - F(a; theta)]` via `p<name>` |
+
+```{r contributions}
+library(likelihood.contr)
+library(likelihood.model)
+
+exact <- contr_name("weibull", "exact", ob_col = "t")
+right <- contr_name("weibull", "right", ob_col = "t")
+```
+
+## Composing a Model
+
+`likelihood_contr()` combines contributions and specifies how to
+dispatch rows to the right contribution. Here `obs_type = "status"`
+means the `status` column determines which contribution handles each
+row:
+
+```{r model}
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = exact,
+  right = right
+)
+model
+```
+
+The contribution names (`exact`, `right`) must match the values in the
+dispatch column.
+
+## Simulating Censored Data
+
+```{r simulate}
+set.seed(42)
+true_shape <- 2
+true_scale <- 5
+censor_time <- 4
+
+raw_times <- rweibull(300, shape = true_shape, scale = true_scale)
+df <- data.frame(
+  t      = pmin(raw_times, censor_time),
+  status = ifelse(raw_times <= censor_time, "exact", "right")
+)
+table(df$status)
+```
+
+## Fitting the Model
+
+The `fit()` generic returns a solver function. Call it with data and
+starting values:
+
+```{r fit}
+result <- suppressWarnings(
+  fit(model)(df, par = c(shape = 1.5, scale = 4))
+)
+summary(result)
+```
+
+The result is a `fisher_mle` object with the usual methods:
+
+```{r inference}
+coef(result)
+confint(result)
+```
+
+## Evaluating the Log-Likelihood Directly
+
+Every `likelihood.model` generic returns a closure. This is useful for
+profiling or plotting:
+
+```{r loglik}
+ll_fn <- loglik(model)
+
+# Evaluate at two different parameter vectors
+ll_fn(df, par = c(shape = 2, scale = 5))
+ll_fn(df, par = c(shape = 1, scale = 3))
+```
+
+## Function-Based Dispatch
+
+When the observation type depends on multiple columns or a computed
+condition, pass a function instead of a column name:
+
+```{r function-dispatch}
+model_fn <- likelihood_contr(
+  obs_type = function(df) ifelse(df$delta == 1, "exact", "right"),
+  exact = contr_name("exp", "exact", ob_col = "t"),
+  right = contr_name("exp", "right", ob_col = "t")
+)
+
+df_fn <- data.frame(t = c(0.5, 1.0, 2.0), delta = c(1, 0, 1))
+loglik(model_fn)(df_fn, par = c(rate = 1.5))
+```
+
+## Next Steps
+
+For user-defined log-likelihood functions, analytical derivatives, and
+model comparison via likelihood ratio tests, see
+`vignette("custom-contributions")`.

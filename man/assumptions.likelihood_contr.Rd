@@ -15,5 +15,14 @@
 Character vector of assumptions.
 }
 \description{
-Assumptions for likelihood_contr
+Returns the character vector of model assumptions stored in the
+\code{likelihood_contr} object. The \code{"iid"} assumption is always included.
+}
+\examples{
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t"),
+  assumptions = c("exponential distribution", "non-informative censoring")
+)
+assumptions(model)
 }

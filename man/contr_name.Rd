@@ -23,15 +23,18 @@ A \code{"contr"} S3 object.
 }
 \description{
 Generates a \code{"contr"} object for a standard R distribution using the
-\verb{d<name>} (PDF) and \verb{p<name>} (CDF) functions. The contribution type
-determines which function is used:
+\verb{d<name>} (PDF) and \verb{p<name>} (CDF) functions. Exact observations use
+the PDF, right-censored use the survival function, left-censored use
+the CDF, and interval-censored use the CDF difference.
 }
 \details{
+The log-likelihood form for each contribution type:
 \itemize{
 \item \code{"exact"}: PDF via \verb{d<name>(x, ..., log = TRUE)}
 \item \code{"right"}: Survival function via \verb{p<name>(x, ..., lower.tail = FALSE, log.p = TRUE)}
 \item \code{"left"}: CDF via \verb{p<name>(x, ..., log.p = TRUE)}
-\item \code{"interval"}: \code{log(F(upper) - F(lower))} via \verb{p<name>}
+\item \code{"interval"}: \code{log(F(upper) - F(lower))} via \verb{p<name>}, computed in
+log-space for numerical stability
 }
 }
 \examples{

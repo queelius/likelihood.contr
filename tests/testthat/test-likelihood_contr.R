@@ -201,6 +201,43 @@ test_that("loglik handles empty subsets gracefully", {
   expect_equal(result, expected)
 })
 
+test_that("loglik/score/hess_loglik skip zero-row subsets from factor split", {
+  # Factor column forces split() to produce an empty data frame for type 'b'
+  b_called <- FALSE
+  model <- likelihood_contr(
+    obs_type = "type",
+    a = contr_fn(
+      loglik = function(df, par, ...) sum(dnorm(df$x, par[1], par[2], log = TRUE)),
+      score  = function(df, par, ...) {
+        x <- df$x; n <- length(x); mu <- par[1]; sigma <- par[2]
+        c(sum(x - mu) / sigma^2, -n / sigma + sum((x - mu)^2) / sigma^3)
+      },
+      hess   = function(df, par, ...) {
+        n <- nrow(df); sigma <- par[2]
+        matrix(c(-n / sigma^2, 0, 0, -2 * n / sigma^2), 2, 2)
+      }
+    ),
+    b = contr_fn(loglik = function(df, par, ...) { b_called <<- TRUE; 0 })
+  )
+
+  df <- data.frame(
+    x    = c(0, 1),
+    type = factor(c("a", "a"), levels = c("a", "b"))
+  )
+  par <- c(0, 1)
+
+  ll_fn <- loglik(model)
+  ll_fn(df, par)
+
+  score_fn <- score(model)
+  score_fn(df, par)
+
+  hess_fn <- hess_loglik(model)
+  hess_fn(df, par)
+
+  expect_false(b_called)
+})
+
 
 # ---- assumptions -----------------------------------------------------------
 

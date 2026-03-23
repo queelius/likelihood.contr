@@ -1,0 +1,154 @@
+---
+title: "Masked Series Systems"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Masked Series Systems}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Competing Risks with Masked Failure Causes
+
+A series system of $m$ components fails when any component fails.
+We observe the system failure time $t$, but we may not know *which*
+component caused the failure. Instead, we observe a **candidate set**
+$C \subseteq \{1, \ldots, m\}$ of components that could have been
+responsible.
+
+Under standard masking conditions (C1: the true cause is always in
+the candidate set; C2: masking is symmetric across candidates; C3:
+masking is independent of system parameters), the log-likelihood
+contribution for an exact observation with candidate set $C_i$ under
+independent exponential components with rates
+$\lambda_1, \ldots, \lambda_m$ is:
+
+$$
+\ell_i = \log\!\Bigl(\sum_{j \in C_i} \lambda_j\Bigr)
+       - \Bigl(\sum_{j=1}^{m} \lambda_j\Bigr) \, t_i
+$$
+
+Right-censored observations (system survived past $t$) contribute
+only the survival term:
+
+$$
+\ell_i = -\Bigl(\sum_{j=1}^{m} \lambda_j\Bigr) \, t_i
+$$
+
+These are just two different log-likelihood functions sharing the same
+parameters, which is exactly what `likelihood.contr` composes.
+
+## Building the Model
+
+```{r model}
+library(likelihood.contr)
+library(likelihood.model)
+
+# m = 3 components. Candidate set columns: x1, x2, x3 (logical).
+m <- 3
+
+masked_exact <- contr_fn(
+  loglik = function(df, par, ...) {
+    C <- as.matrix(df[, paste0("x", seq_len(m))])
+    lambda_c <- rowSums(sweep(C, 2, par, `*`))
+    lambda_sys <- sum(par)
+    sum(log(lambda_c) - lambda_sys * df$t)
+  },
+  score = function(df, par, ...) {
+    C <- as.matrix(df[, paste0("x", seq_len(m))])
+    lambda_c <- rowSums(sweep(C, 2, par, `*`))
+    # d/d(lambda_j): sum(C[i,j] / lambda_c[i]) - n * t_bar
+    colSums(C / lambda_c) - sum(df$t)
+  }
+)
+
+masked_right <- contr_fn(
+  loglik = function(df, par, ...) {
+    -sum(par) * sum(df$t)
+  },
+  score = function(df, par, ...) {
+    rep(-sum(df$t), m)
+  }
+)
+
+model <- likelihood_contr(
+  obs_type = "omega",
+  exact = masked_exact,
+  right = masked_right,
+  assumptions = c(
+    "independent exponential components",
+    "series system",
+    "C1: true cause always in candidate set",
+    "C2: symmetric masking",
+    "C3: masking independent of parameters"
+  )
+)
+model
+```
+
+## Simulating Masked Data
+
+```{r simulate}
+set.seed(42)
+n <- 300
+true_rates <- c(1.0, 0.5, 0.3)
+censor_time <- 2.0
+mask_prob <- 0.4  # probability a non-failed component enters candidate set
+
+# Generate component lifetimes and system lifetime
+comp_times <- matrix(rexp(n * m, rate = rep(true_rates, each = n)), n, m)
+sys_times <- apply(comp_times, 1, min)
+failed_comp <- apply(comp_times, 1, which.min)
+
+# Apply right-censoring
+obs_times <- pmin(sys_times, censor_time)
+omega <- ifelse(sys_times <= censor_time, "exact", "right")
+
+# Generate candidate sets satisfying C1/C2/C3
+C <- matrix(FALSE, n, m)
+for (i in seq_len(n)) {
+  if (omega[i] == "exact") {
+    C[i, failed_comp[i]] <- TRUE                        # C1
+    others <- setdiff(seq_len(m), failed_comp[i])
+    C[i, others] <- runif(length(others)) < mask_prob   # C2/C3
+  }
+  # right-censored: candidate set stays empty
+}
+
+df <- data.frame(t = obs_times, omega = omega, C)
+colnames(df)[3:(m + 2)] <- paste0("x", seq_len(m))
+
+cat("Exact:", sum(omega == "exact"),
+    " Right-censored:", sum(omega == "right"), "\n")
+head(df)
+```
+
+## Fitting
+
+```{r fit}
+result <- fit(model)(df, par = c(0.5, 0.5, 0.5))
+summary(result)
+```
+
+```{r compare}
+cat("True rates: ", paste(true_rates, collapse = ", "), "\n")
+cat("Estimated:  ", paste(round(coef(result), 3), collapse = ", "), "\n")
+```
+
+## Why This Works
+
+The key insight is that `likelihood.contr` does not care what the
+log-likelihood *means*, only that each observation type contributes a
+function `f(df, par) -> scalar`. The masked series system model is just
+two contributions (exact with candidate sets, right-censored without)
+sharing the same rate parameters. The candidate set information lives in
+the data frame columns, and each contribution function reads what it
+needs.
+
+This same pattern extends to left-censored and interval-censored
+masked data, Weibull components, or any parametric family where you can
+write the log-likelihood contribution as a function of the data and
+parameters.

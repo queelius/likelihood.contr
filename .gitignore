@@ -8,3 +8,5 @@ doc
 *.o
 *.so
 *.dll
+/doc/
+/Meta/

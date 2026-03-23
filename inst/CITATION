@@ -1,0 +1,8 @@
+bibentry(
+  bibtype = "Manual",
+  title   = "likelihood.contr: Likelihood Contribution Models for Heterogeneous Observation Types",
+  author  = person("Alexander", "Towell"),
+  year    = "2026",
+  note    = "R package version 0.1.0",
+  url     = "https://github.com/queelius/likelihood.contr"
+)

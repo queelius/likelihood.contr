@@ -21,3 +21,13 @@ evaluates each contribution's log-likelihood, and sums them.
 The data-frame split is cached so repeated calls with the same \code{df}
 (e.g., during optimization) skip the split step.
 }
+\examples{
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t"),
+  right = contr_name("exp", "right", ob_col = "t")
+)
+df <- data.frame(t = c(1, 2, 3, 4), status = c("exact", "exact", "right", "right"))
+ll_fn <- loglik(model)
+ll_fn(df, par = c(rate = 0.5))
+}

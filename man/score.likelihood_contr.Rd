@@ -21,3 +21,12 @@ sums the per-type score vectors. If a contribution does not provide
 an analytical score, numerical differentiation via \code{\link[numDeriv:grad]{numDeriv::grad()}}
 is used.
 }
+\examples{
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t")
+)
+df <- data.frame(t = c(0.5, 1.0, 1.5), status = "exact")
+score_fn <- score(model)
+score_fn(df, par = c(rate = 2))
+}

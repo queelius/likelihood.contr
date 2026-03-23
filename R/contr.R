@@ -49,13 +49,18 @@ contr_fn <- function(loglik, score = NULL, hess = NULL) {
 #' Create a likelihood contribution from a named R distribution
 #'
 #' Generates a `"contr"` object for a standard R distribution using the
-#' `d<name>` (PDF) and `p<name>` (CDF) functions. The contribution type
-#' determines which function is used:
+#' `d<name>` (PDF) and `p<name>` (CDF) functions. Exact observations use
+#' the PDF, right-censored use the survival function, left-censored use
+#' the CDF, and interval-censored use the CDF difference.
+#'
+#' @details
+#' The log-likelihood form for each contribution type:
 #'
 #' - `"exact"`: PDF via `d<name>(x, ..., log = TRUE)`
 #' - `"right"`: Survival function via `p<name>(x, ..., lower.tail = FALSE, log.p = TRUE)`
 #' - `"left"`: CDF via `p<name>(x, ..., log.p = TRUE)`
-#' - `"interval"`: `log(F(upper) - F(lower))` via `p<name>`
+#' - `"interval"`: `log(F(upper) - F(lower))` via `p<name>`, computed in
+#'   log-space for numerical stability
 #'
 #' @param dist_name The distribution name (e.g., `"norm"`, `"weibull"`, `"exp"`).
 #'   Must have both `d<name>` and `p<name>` functions available.
@@ -132,9 +137,21 @@ contr_name <- function(dist_name, type, ob_col = "x", ob_col_upper = NULL) {
       lo <- df[[ob_col]]
       hi <- df[[ob_col_upper]]
       par_args <- .prepare_args_list(par, cdf_fn)
-      F_hi <- do.call(cdf_fn, c(list(hi), par_args))
-      F_lo <- do.call(cdf_fn, c(list(lo), par_args))
-      sum(log(F_hi - F_lo))
+      log_F_hi <- do.call(cdf_fn, c(list(hi), par_args, list(log.p = TRUE)))
+      log_F_lo <- do.call(cdf_fn, c(list(lo), par_args, list(log.p = TRUE)))
+      log_S_hi <- do.call(cdf_fn, c(list(hi), par_args,
+                                     list(lower.tail = FALSE, log.p = TRUE)))
+      log_S_lo <- do.call(cdf_fn, c(list(lo), par_args,
+                                     list(lower.tail = FALSE, log.p = TRUE)))
+      # CDF form is stable when F < 0.5 (left tail);
+      # survival form is stable when F >= 0.5 (right tail).
+      right_tail <- log_F_hi > -log(2)
+      result <- ifelse(
+        right_tail,
+        log_S_lo + log1p(-exp(log_S_hi - log_S_lo)),
+        log_F_hi + log1p(-exp(log_F_lo - log_F_hi))
+      )
+      sum(result)
     }
   )
 

@@ -21,8 +21,7 @@
 #'   always included.
 #' @return A `"likelihood_contr"` likelihood model object.
 #'
-#' @importFrom likelihood.model loglik score hess_loglik assumptions rdata
-#'   is_likelihood_model fim fit lrt fisher_mle
+#'
 #'
 #' @examples
 #' # Weibull model with exact and right-censored observations
@@ -87,6 +86,15 @@ likelihood_contr <- function(obs_type, ..., rdata_fn = NULL,
 #' @param ... Additional arguments (currently unused).
 #' @return A function `function(df, par, ...)` returning the total
 #'   log-likelihood (scalar).
+#' @examples
+#' model <- likelihood_contr(
+#'   obs_type = "status",
+#'   exact = contr_name("exp", "exact", ob_col = "t"),
+#'   right = contr_name("exp", "right", ob_col = "t")
+#' )
+#' df <- data.frame(t = c(1, 2, 3, 4), status = c("exact", "exact", "right", "right"))
+#' ll_fn <- loglik(model)
+#' ll_fn(df, par = c(rate = 0.5))
 #' @method loglik likelihood_contr
 #' @export
 loglik.likelihood_contr <- function(model, ...) {
@@ -116,6 +124,14 @@ loglik.likelihood_contr <- function(model, ...) {
 #' @param ... Additional arguments (currently unused).
 #' @return A function `function(df, par, ...)` returning the total score
 #'   vector.
+#' @examples
+#' model <- likelihood_contr(
+#'   obs_type = "status",
+#'   exact = contr_name("exp", "exact", ob_col = "t")
+#' )
+#' df <- data.frame(t = c(0.5, 1.0, 1.5), status = "exact")
+#' score_fn <- score(model)
+#' score_fn(df, par = c(rate = 2))
 #' @method score likelihood_contr
 #' @export
 score.likelihood_contr <- function(model, ...) {
@@ -155,6 +171,14 @@ score.likelihood_contr <- function(model, ...) {
 #' @param ... Additional arguments (currently unused).
 #' @return A function `function(df, par, ...)` returning the total Hessian
 #'   matrix.
+#' @examples
+#' model <- likelihood_contr(
+#'   obs_type = "status",
+#'   exact = contr_name("exp", "exact", ob_col = "t")
+#' )
+#' df <- data.frame(t = c(0.5, 1.0, 1.5), status = "exact")
+#' hess_fn <- hess_loglik(model)
+#' hess_fn(df, par = c(rate = 2))
 #' @method hess_loglik likelihood_contr
 #' @export
 hess_loglik.likelihood_contr <- function(model, ...) {
@@ -190,6 +214,17 @@ hess_loglik.likelihood_contr <- function(model, ...) {
 #' @param model A `likelihood_contr` model.
 #' @param ... Additional arguments (currently unused).
 #' @return A function `function(theta, n, ...)` returning a data frame.
+#' @examples
+#' rdata_fn <- function(theta, n, ...) {
+#'   data.frame(t = rexp(n, rate = theta[1]), status = "exact")
+#' }
+#' model <- likelihood_contr(
+#'   obs_type = "status",
+#'   exact = contr_name("exp", "exact", ob_col = "t"),
+#'   rdata_fn = rdata_fn
+#' )
+#' gen <- rdata(model)
+#' gen(theta = c(rate = 2), n = 5)
 #' @method rdata likelihood_contr
 #' @export
 rdata.likelihood_contr <- function(model, ...) {
@@ -202,9 +237,19 @@ rdata.likelihood_contr <- function(model, ...) {
 
 #' Assumptions for likelihood_contr
 #'
+#' Returns the character vector of model assumptions stored in the
+#' `likelihood_contr` object. The `"iid"` assumption is always included.
+#'
 #' @param model A `likelihood_contr` model.
 #' @param ... Additional arguments (currently unused).
 #' @return Character vector of assumptions.
+#' @examples
+#' model <- likelihood_contr(
+#'   obs_type = "status",
+#'   exact = contr_name("exp", "exact", ob_col = "t"),
+#'   assumptions = c("exponential distribution", "non-informative censoring")
+#' )
+#' assumptions(model)
 #' @method assumptions likelihood_contr
 #' @export
 assumptions.likelihood_contr <- function(model, ...) {
@@ -214,9 +259,20 @@ assumptions.likelihood_contr <- function(model, ...) {
 
 #' Print method for likelihood_contr
 #'
+#' Prints a summary of the model's observation types, dispatch method
+#' (column name or function), and assumptions.
+#'
 #' @param x A `likelihood_contr` model.
 #' @param ... Additional arguments (ignored).
 #' @return The model object, invisibly.
+#' @examples
+#' model <- likelihood_contr(
+#'   obs_type = "status",
+#'   exact = contr_name("weibull", "exact", ob_col = "t"),
+#'   right = contr_name("weibull", "right", ob_col = "t"),
+#'   assumptions = c("Weibull distribution")
+#' )
+#' print(model)
 #' @export
 print.likelihood_contr <- function(x, ...) {
   cat("Likelihood Contribution Model\n")

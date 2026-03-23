@@ -1,6 +1,9 @@
 # Integration tests using likelihood.model generics (fit, lrt, score,
 # hess_loglik, fim) on likelihood_contr models.
 
+# fit, lrt, and fim are not re-exported by likelihood.contr, so load explicitly.
+library(likelihood.model)
+
 # ---- fit() on a simple exponential model -----------------------------------
 
 test_that("fit() works with likelihood_contr model (exponential exact)", {

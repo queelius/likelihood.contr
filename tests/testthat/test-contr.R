@@ -81,6 +81,15 @@ test_that("contr_name creates interval-censored contribution", {
   expect_equal(result, expected)
 })
 
+test_that("contr_name interval censoring is numerically stable in tails", {
+  ctr <- contr_name("norm", "interval", ob_col = "lo", ob_col_upper = "hi")
+  # Far right tail: naive log(F_hi - F_lo) underflows to -Inf
+  df <- data.frame(lo = 37, hi = 38)
+  result <- ctr$loglik(df, c(0, 1))
+  expect_true(is.finite(result))
+  expect_true(result < 0)
+})
+
 test_that("contr_name validates type", {
   expect_error(
     contr_name("norm", "unknown"),
@@ -92,6 +101,16 @@ test_that("contr_name validates distribution exists", {
   expect_error(
     contr_name("bogus_dist_xyz", "exact"),
     "Distribution 'bogus_dist_xyz' not found"
+  )
+})
+
+test_that("contr_name errors when CDF function is missing", {
+  # Create a distribution with d<name> but no p<name>
+  assign("dorphan_test_dist", dnorm, envir = globalenv())
+  on.exit(rm("dorphan_test_dist", envir = globalenv()))
+  expect_error(
+    contr_name("orphan_test_dist", "exact"),
+    "no function 'porphan_test_dist'"
   )
 })
 

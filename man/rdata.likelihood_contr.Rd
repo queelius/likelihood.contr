@@ -17,3 +17,15 @@ A function \verb{function(theta, n, ...)} returning a data frame.
 \description{
 Returns the user-supplied \code{rdata_fn} or errors if none was provided.
 }
+\examples{
+rdata_fn <- function(theta, n, ...) {
+  data.frame(t = rexp(n, rate = theta[1]), status = "exact")
+}
+model <- likelihood_contr(
+  obs_type = "status",
+  exact = contr_name("exp", "exact", ob_col = "t"),
+  rdata_fn = rdata_fn
+)
+gen <- rdata(model)
+gen(theta = c(rate = 2), n = 5)
+}

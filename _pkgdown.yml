@@ -1,0 +1,15 @@
+url: https://queelius.github.io/likelihood.contr/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+
+articles:
+  - title: Vignettes
+    contents:
+      - likelihood-contr-introduction
+      - custom-contributions
+      - masked-series-system
