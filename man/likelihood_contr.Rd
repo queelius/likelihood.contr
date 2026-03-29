@@ -20,7 +20,11 @@ Required by the default \code{\link[likelihood.model:fim.likelihood_model]{likel
 always included.}
 }
 \value{
-A \code{"likelihood_contr"} likelihood model object.
+A \code{"likelihood_contr"} S3 object (inheriting from
+\code{"likelihood_model"}) containing the contributions, dispatch method,
+and assumptions. Use \code{\link[=loglik]{loglik()}}, \code{\link[=score]{score()}}, \code{\link[=hess_loglik]{hess_loglik()}} to obtain
+inference closures, or \code{\link[generics:fit]{generics::fit()}} from the likelihood.model
+package to perform maximum likelihood estimation.
 }
 \description{
 Constructs a \code{"likelihood_contr"} model by combining named \code{"contr"}

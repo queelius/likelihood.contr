@@ -19,7 +19,9 @@ Hessian matrix. If \code{NULL}, numerical differentiation via
 \code{\link[numDeriv:hessian]{numDeriv::hessian()}} is used.}
 }
 \value{
-A \code{"contr"} S3 object with elements \verb{$loglik}, \verb{$score}, \verb{$hess}.
+A \code{"contr"} S3 object (a list) with elements \verb{$loglik} (function),
+\verb{$score} (function or \code{NULL}), and \verb{$hess} (function or \code{NULL}). Pass
+this object to \code{\link[=likelihood_contr]{likelihood_contr()}} to include it in a composed model.
 }
 \description{
 Wraps user-provided log-likelihood, score, and Hessian functions into

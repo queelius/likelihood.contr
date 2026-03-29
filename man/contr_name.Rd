@@ -19,7 +19,10 @@ For interval censoring, this is the lower bound column.}
 Required when \code{type = "interval"}.}
 }
 \value{
-A \code{"contr"} S3 object.
+A \code{"contr"} S3 object (a list) with a \verb{$loglik} function
+derived from the named distribution. The \verb{$score} and \verb{$hess} elements
+are \code{NULL}; numerical differentiation is used automatically when the
+contribution is part of a \code{\link[=likelihood_contr]{likelihood_contr()}} model.
 }
 \description{
 Generates a \code{"contr"} object for a standard R distribution using the

@@ -6,7 +6,7 @@
 \alias{likelihood.contr-package}
 \title{likelihood.contr: Likelihood Contribution Models for Heterogeneous Observation Types}
 \description{
-Constructs likelihood models from heterogeneous observation types by composing named contributions. Each observation type (exact, left-censored, right-censored, interval-censored, or custom) contributes independently to the total log-likelihood, which is summed under an i.i.d. assumption. Provides 'contr_name()' for standard R distributions and 'contr_fn()' for user-defined contributions, composed via 'likelihood_contr()' into objects compatible with the 'likelihood.model' inference framework.
+Constructs likelihood models from heterogeneous observation types by composing named contributions. Each observation type (exact, left-censored, right-censored, interval-censored, or custom) contributes independently to the total log-likelihood, which is summed under an i.i.d. assumption. Provides contr_name() for standard R distributions and contr_fn() for user-defined contributions, composed via likelihood_contr() into objects compatible with the likelihood.model inference framework.
 }
 \seealso{
 Useful links:

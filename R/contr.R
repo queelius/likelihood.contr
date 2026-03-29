@@ -16,7 +16,9 @@
 #' @param hess Optional function `function(df, par, ...)` returning the
 #'   Hessian matrix. If `NULL`, numerical differentiation via
 #'   [numDeriv::hessian()] is used.
-#' @return A `"contr"` S3 object with elements `$loglik`, `$score`, `$hess`.
+#' @return A `"contr"` S3 object (a list) with elements `$loglik` (function),
+#'   `$score` (function or `NULL`), and `$hess` (function or `NULL`). Pass
+#'   this object to [likelihood_contr()] to include it in a composed model.
 #' @examples
 #' # Exponential exact-observation contribution
 #' my_contr <- contr_fn(
@@ -69,7 +71,10 @@ contr_fn <- function(loglik, score = NULL, hess = NULL) {
 #'   For interval censoring, this is the lower bound column.
 #' @param ob_col_upper Name of the upper bound column for interval censoring.
 #'   Required when `type = "interval"`.
-#' @return A `"contr"` S3 object.
+#' @return A `"contr"` S3 object (a list) with a `$loglik` function
+#'   derived from the named distribution. The `$score` and `$hess` elements
+#'   are `NULL`; numerical differentiation is used automatically when the
+#'   contribution is part of a [likelihood_contr()] model.
 #' @examples
 #' # Exact Weibull contribution
 #' exact <- contr_name("weibull", "exact", ob_col = "t")

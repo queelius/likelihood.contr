@@ -19,7 +19,11 @@
 #'   Required by the default [fim.likelihood_model()] method.
 #' @param assumptions Character vector of model assumptions. `"iid"` is
 #'   always included.
-#' @return A `"likelihood_contr"` likelihood model object.
+#' @return A `"likelihood_contr"` S3 object (inheriting from
+#'   `"likelihood_model"`) containing the contributions, dispatch method,
+#'   and assumptions. Use [loglik()], [score()], [hess_loglik()] to obtain
+#'   inference closures, or [fit()] from the likelihood.model
+#'   package to perform maximum likelihood estimation.
 #'
 #'
 #'
