@@ -1,7 +1,7 @@
 Package: likelihood.contr
 Type: Package
 Title: Likelihood Contribution Models for Heterogeneous Observation Types
-Version: 0.1.1
+Version: 0.2.0
 Authors@R:
     person("Alexander", "Towell", , "lex@metafunctor.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-6443-9897"))
 Depends: R (>= 3.5.0)
@@ -18,7 +18,8 @@ BugReports: https://github.com/queelius/likelihood.contr/issues
 Encoding: UTF-8
 Imports:
     likelihood.model,
-    numDeriv
+    numDeriv,
+    stats
 Suggests:
     testthat (>= 3.0.0),
     knitr,

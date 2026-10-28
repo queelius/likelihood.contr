@@ -1,3 +1,10 @@
+# likelihood.contr 0.2.0
+
+* Document usage of re-exported generics, resolving the Rd-contents note on current CRAN R-devel checks.
+* Reject duplicate contribution names and malformed observation callbacks before they can silently recycle or misroute observations.
+* Add `contr_freq()` for counted independent observations and histogram bins, with analytical derivative preservation and numerical fallback.
+* Add a reproducible timeout-aware latency benchmarking vignette and demo, with explicit censoring and extrapolation assumptions.
+
 # likelihood.contr 0.1.1
 
 * Improved documentation: enriched `\value` tags on all exported Rd files

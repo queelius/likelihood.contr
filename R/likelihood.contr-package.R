@@ -29,6 +29,11 @@ NULL
 #'
 #' See \code{\link[likelihood.model]{loglik}} for full documentation.
 #'
+#' @usage loglik(model, ...)
+#' score(model, ...)
+#' hess_loglik(model, ...)
+#' assumptions(model, ...)
+#' rdata(model, ...)
 #' @param model A likelihood model object (e.g., a \code{"likelihood_contr"}
 #'   object).
 #' @param ... Additional arguments passed to methods.

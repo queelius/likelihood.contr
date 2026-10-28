@@ -13,13 +13,38 @@ confidence intervals, likelihood ratio tests, and Fisher information.
 ## Installation
 
 ```r
-# From r-universe
-install.packages("likelihood.contr",
-                 repos = "https://queelius.r-universe.dev")
+# Stable release from CRAN
+install.packages("likelihood.contr")
+
+# Development builds (with CRAN dependencies)
+install.packages("likelihood.contr", repos = c(
+  "https://queelius.r-universe.dev", "https://cloud.r-project.org"))
 
 # Or from GitHub
 remotes::install_github("queelius/likelihood.contr")
 ```
+
+## Start with a decision: is this service fast enough?
+
+A timed-out request is evidence that completion took longer than the deadline.
+Dropping it can make a slow service look fast. Combine completed requests and
+timeouts in one likelihood, and keep measured SLO rates separate from
+model-dependent tail extrapolations.
+
+The [timeout benchmarking walkthrough](vignettes/timeout-benchmarking.Rmd)
+includes a reproducible service/AI example, an independently checked exponential
+MLE, and histogram inference without expanding counts into individual requests.
+
+```r
+# Available in version 0.2.0
+demo("timeout-benchmark", package = "likelihood.contr")
+```
+
+`contr_freq()` weights existing contributions by observed counts, so the same
+model machinery handles raw measurements and disjoint telemetry bins. It is
+for independent replicated observations, not survey weights. Standard survival
+workflows are also well served by `survival` and `fitdistrplus`; use this library
+when observation mechanisms need explicit custom composition.
 
 ## Quick Example
 

@@ -26,6 +26,7 @@
 #'   as a named list of data-frame subsets keyed by type.
 #' @keywords internal
 .ensure_cache <- function(cache, df, model) {
+  if (!is.data.frame(df)) stop("Observations must be a data frame")
   if (identical(df, cache$df_ref)) {
     return(cache)
   }
@@ -33,6 +34,9 @@
   # Determine types
   if (is.function(model$obs_type)) {
     types <- model$obs_type(df)
+    if (!is.character(types) || length(types) != nrow(df)) {
+      stop("Observation callback must return a character vector with one entry per row")
+    }
   } else {
     col <- model$obs_type
     if (!col %in% names(df)) {

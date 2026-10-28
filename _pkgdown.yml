@@ -10,6 +10,7 @@ navbar:
 articles:
   - title: Vignettes
     contents:
+      - timeout-benchmarking
       - likelihood-contr-introduction
       - custom-contributions
       - masked-series-system

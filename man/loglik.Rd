@@ -7,6 +7,13 @@
 \alias{assumptions}
 \alias{rdata}
 \title{Re-exported generics from likelihood.model}
+\usage{
+loglik(model, ...)
+score(model, ...)
+hess_loglik(model, ...)
+assumptions(model, ...)
+rdata(model, ...)
+}
 \arguments{
 \item{model}{A likelihood model object (e.g., a \code{"likelihood_contr"}
 object).}

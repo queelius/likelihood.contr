@@ -1,0 +1,122 @@
+---
+title: "Timeout-aware service and AI latency benchmarks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Timeout-aware service and AI latency benchmarks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## The decision: does this backend meet a deadline?
+
+A request that times out after two seconds does not have a two-second
+completion latency. Its completion time is unknown and exceeds two seconds.
+Dropping it describes only the requests that completed. Treating it as a
+completion at two seconds also distorts the distribution.
+
+For service or AI inference benchmarks, retain one row per attempt with elapsed
+time, completion status, configured deadline, backend, workload, and run ID.
+Analyze comparable workload/load groups separately. Distinguish time to first
+token from end-to-end completion time; do not combine them into one outcome.
+
+An administrative timeout can be a right-censored completion time when the
+underlying completion process and censoring assumptions are defensible. HTTP
+errors, refusals, invalid outputs, and cancelled retries are separate outcomes;
+they are not automatically censored successful completions. Report those counts
+and quality separately. Correlated requests in a shared load test also require
+run-level replication or an appropriate dependence model for uncertainty.
+
+## A reproducible demonstration
+
+The following uses **synthetic exponential times**, not measured provider data.
+The known distribution lets us verify the inference against a closed-form MLE.
+It is an illustration, not a claim that service latency is exponential.
+
+```{r benchmark}
+library(likelihood.contr)
+library(likelihood.model)
+set.seed(20261028)
+deadline <- 2
+latent <- rexp(1000, rate = 1)
+requests <- data.frame(seconds = pmin(latent, deadline),
+  status = ifelse(latent <= deadline, "exact", "right"))
+model <- likelihood_contr("status",
+  exact = contr_name("exp", "exact", "seconds"),
+  right = contr_name("exp", "right", "seconds"))
+rate <- sum(requests$status == "exact") / sum(requests$seconds)
+fitted <- fit(model)(requests, c(rate = rate))
+stopifnot(fitted$converged, abs(unname(coef(fitted)) - rate) < 1e-5)
+data.frame(
+  completed_only_p95 = unname(quantile(requests$seconds[requests$status == "exact"], .95)),
+  model_p95 = qexp(.95, rate = coef(fitted)),
+  simulation_truth_p95 = qexp(.95, rate = 1))
+```
+
+More than 5% of requests time out in this example. The observed data therefore
+do not determine an empirical p95 beyond the deadline. The fitted p95 is a
+**model-dependent extrapolation**. Longer observation windows, a suitable
+nonparametric survival analysis, and sensitivity to alternative tail models
+are more useful than presenting that extrapolation as measured fact.
+
+For an SLO within the common observation window, count successful completions
+by that time. This directly answers the operational question under this design:
+
+```{r slo}
+slo <- 1.5
+met_slo <- requests$status == "exact" & requests$seconds <= slo
+c(slo_seconds = slo, observed_fraction_meeting_slo = mean(met_slo),
+  timeout_fraction = mean(requests$status == "right"))
+```
+
+Compare backends at a common SLO and matched workload/load. A faster
+completed-only p95 can coexist with more timeouts. With unequal deadlines,
+a request censored before the SLO has an unknown SLO outcome; do not count it
+as either success or failure without reporting bounds or making assumptions.
+
+## When only histogram bins are retained
+
+Telemetry often stores counts rather than raw times. Each disjoint bin
+`(lo, hi]` contributes `count * log(F(hi) - F(lo))`. An open final bin
+`(deadline, Inf]` contributes its count times the log survival probability.
+`contr_freq()` applies this principle to any additive contribution, retaining
+analytical derivatives when supplied. It allocates no expanded request table.
+
+```{r histogram}
+bins <- data.frame(lo = c(0, .5, 1, 2), hi = c(.5, 1, 2, Inf),
+                   count = c(390, 240, 230, 140), status = "interval")
+grouped <- likelihood_contr("status",
+  interval = contr_freq(contr_name("exp", "interval", "lo", "hi"), "count"))
+ll <- loglik(grouped)
+# Explicit positive-domain parameterization; no automatic domain guessing.
+solution <- optimize(function(log_rate) ll(bins, c(rate = exp(log_rate))),
+                     c(-5, 5), maximum = TRUE)
+exp(solution$maximum)
+```
+
+Convert cumulative histogram counts to per-bin increments first. Keep labels,
+units, deadlines and run identities separate. Include timeout counts: a
+histogram of completed requests alone cannot recover missing censored attempts.
+Frequencies must be finite nonnegative integers; they are not survey weights.
+
+The resulting likelihood differs from a multinomial likelihood by a constant
+that does not affect parameter estimates or likelihood ratios on the same
+bins. The generic fitting layer counts rows, not expanded observations:
+**do not use its default BIC or row bootstrap for frequency data**. Use the
+sum of frequencies for the sample size and resample counts using the actual
+sampling design. This example optimizes the likelihood directly for that reason.
+
+## Where this fits
+
+Use `survival` for standard nonparametric and regression survival analysis, and
+`fitdistrplus` for standard parametric distribution fitting with censoring.
+`likelihood.contr` is useful when you need to compose exact measurements,
+censored observations, histogram frequencies, and custom observation mechanisms
+into one explicit likelihood. The choice of probability model remains yours.
+
+Run `demo("timeout-benchmark", package = "likelihood.contr")` for the executable
+synthetic demonstration. This workflow is a starting point for a benchmark
+report, not a causal provider ranking or a guarantee of production SLOs.

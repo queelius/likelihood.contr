@@ -52,8 +52,11 @@ likelihood_contr <- function(obs_type, ..., rdata_fn = NULL,
   if (length(contrs) == 0L) {
     stop("At least one contribution must be provided")
   }
-  if (is.null(names(contrs)) || any(names(contrs) == "")) {
+  if (is.null(names(contrs)) || anyNA(names(contrs)) || any(names(contrs) == "")) {
     stop("All contributions must be named")
+  }
+  if (anyDuplicated(names(contrs))) {
+    stop("Contribution names must be unique")
   }
   for (nm in names(contrs)) {
     if (!inherits(contrs[[nm]], "contr")) {
