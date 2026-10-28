@@ -26,3 +26,10 @@ Final R CMD check --as-cran: 0 errors, 0 warnings, 2 environment notes.
 Examples, vignette rebuilding and PDF manual pass. The initial remote incoming
 checks completed; remote incoming checks were disabled only on the final
 repeat. Windows R-devel validation has been requested separately.
+
+## Current R-devel check
+
+GitHub Actions, Ubuntu, R Under development (2026-10-26 r90766):
+`R CMD check --no-manual --as-cran` completed with Status: OK.
+
+https://github.com/queelius/likelihood.contr/actions/runs/40639892379/job/122655341494
